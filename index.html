@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Hydroponic System Architecture</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .flow-container {
+            position: relative;
+            width: 100%;
+            height: 1100px;
+            overflow: auto;
+            background: linear-gradient(45deg, #f8f9fa 25%, transparent 25%),
+                        linear-gradient(-45deg, #f8f9fa 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #f8f9fa 75%),
+                        linear-gradient(-45deg, transparent 75%, #f8f9fa 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            border-radius: 15px;
+            border: 3px solid #e0e6ed;
+        }
+
+        .node {
+            position: absolute;
+            padding: 15px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            font-size: 11px;
+            text-align: center;
+            min-width: 140px;
+            max-width: 180px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+            border: 2px solid transparent;
+            transform: scale(0.9);
+            opacity: 0.7;
+            z-index: 10;
+        }
+
+        .node.visible {
+            transform: scale(1);
+            opacity: 1;
+            animation: slideIn 0.6s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: scale(0.8) translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+            z-index: 15;
+        }
+
+        .node.active {
+            transform: scale(1.08);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);
+            border-color: #fff;
+            z-index: 20;
+        }
+
+        .node.has-children::after {
+            content: '▶';
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .node.expanded::after {
+            content: '▼';
+        }
+
+        /* Node Type Styles */
+        .sensor {
+            background: linear-gradient(135deg, #e8f5e8, #c8e6c8);
+            color: #1b5e20;
+            border-color: #4caf50;
+        }
+
+        .decision {
+            background: linear-gradient(135deg, #fff3e0, #ffcc80);
+            color: #f57800;
+            border-color: #ff9800;
+        }
+
+        .action {
+            background: linear-gradient(135deg, #e3f2fd, #90caf9);
+            color: #0277bd;
+            border-color: #2196f3;
+        }
+
+        .alert {
+            background: linear-gradient(135deg, #ffebee, #ffcdd2);
+            color: #c62828;
+            border-color: #f44336;
+        }
+
+        .display {
+            background: linear-gradient(135deg, #f3e5f5, #ce93d8);
+            color: #7b1fa2;
+            border-color: #9c27b0;
+        }
+
+        .environment {
+            background: linear-gradient(135deg, #e0f2f1, #80cbc4);
+            color: #00695c;
+            border-color: #009688;
+        }
+
+        .connection {
+            position: absolute;
+            z-index: 1;
+        }
+
+        .connection-line {
+            position: absolute;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 2px;
+            opacity: 0;
+            transition: all 0.4s ease;
+        }
+
+        .connection-line.visible {
+            opacity: 0.8;
+            animation: drawLine 0.8s ease-out;
+        }
+
+        @keyframes drawLine {
+            from {
+                transform: scaleX(0);
+            }
+            to {
+                transform: scaleX(1);
+            }
+        }
+
+        .arrow {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 10px solid #667eea;
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+        }
+
+        .controls {
+            margin-top: 25px;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn.secondary {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+
+        .info-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 25px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .legend-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .section-header {
+            position: absolute;
+            font-size: 16px;
+            font-weight: 700;
+            color: #2c3e50;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 5;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .flow-container {
+                height: 900px;
+            }
+            
+            .node {
+                font-size: 10px;
+                min-width: 120px;
+                max-width: 140px;
+                padding: 12px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌱 Hydroponic System Architecture Flow</h1>
+        
+        <div class="info-panel">
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color sensor"></div>
+                    <span>Sensors & Inputs</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color decision"></div>
+                    <span>Decision Logic</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color action"></div>
+                    <span>System Actions</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color environment"></div>
+                    <span>Environmental Control</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color alert"></div>
+                    <span>Alerts & Notifications</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color display"></div>
+                    <span>User Interface</span>
+                </div>
+            </div>
+            <p style="text-align: center; color: #666; font-size: 14px;">
+                <strong>Click nodes with ▶ to expand their functionality.</strong> 
+                Explore the complete automation architecture from sensors to actions.
+            </p>
+        </div>
+
+        <div class="flow-container" id="flowContainer">
+            <!-- Section Headers -->
+            <div class="section-header" style="left: 50px; top: 20px;">📊 Sensor Layer</div>
+            <div class="section-header" style="left: 400px; top: 20px;">🤔 Decision Engine</div>
+            <div class="section-header" style="left: 750px; top: 20px;">⚡ Action Layer</div>
+            <div class="section-header" style="left: 1100px; top: 20px;">🌡️ Environmental</div>
+            <div class="section-header" style="left: 1450px; top: 20px;">📱 Interface</div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn" onclick="resetFlow()">🔄 Reset Architecture</button>
+            <button class="btn secondary" onclick="expandAll()">📋 Show All Systems</button>
+            <button class="btn" onclick="showCriticalPath()">⚡ Critical Path</button>
+        </div>
+    </div>
+
+    <script>
+        const nodes = {
+            // Sensor Layer (Column 1)
+            'NPK': { 
+                x: 50, y: 80, type: 'sensor', 
+                text: 'NPK Sensor\n📈 N-P-K Analysis\n15-10-20 ppm target', 
+                children: ['NPK_ANALYSIS'] 
+            },
+            'PH': { 
+                x: 50, y: 180, type: 'sensor', 
+                text: 'pH Sensor\n🧪 Acidity Level\n5.5 - 6.5 range', 
+                children: ['PH_CONTROL'] 
+            },
+            'TDS': { 
+                x: 50, y: 280, type: 'sensor', 
+                text: 'TDS/EC Sensor\n⚡ Conductivity\n800-1400 ppm', 
+                children: ['TDS_MANAGEMENT'] 
+            },
+            'TEMP': { 
+                x: 50, y: 380, type: 'sensor', 
+                text: 'Temperature\n🌡️ Air Temp\n18-28°C optimal', 
+                children: ['TEMP_CONTROL'] 
+            },
+            'HUM': { 
+                x: 50, y: 480, type: 'sensor', 
+                text: 'Humidity Sensor\n💧 RH Level\n60-70% target', 
+                children: ['HUMIDITY_CONTROL'] 
+            },
+            'VPD': { 
+                x: 50, y: 580, type: 'sensor', 
+                text: 'VPD Sensor\n🌬️ Vapor Pressure\n0.8-1.2 kPa ideal', 
+                children: ['VPD_MANAGEMENT'] 
+            },
+            'CO2': { 
+                x: 50, y: 680, type: 'sensor', 
+                text: 'CO2 Monitor\n🫁 CO2 Level\n400-1000 ppm', 
+                children: ['CO2_CONTROL'] 
+            },
+            'PAR': { 
+                x: 50, y: 780, type: 'sensor', 
+                text: 'PAR Sensor\n☀️ Light Intensity\n200-400 μmol/m²/s', 
+                children: ['LIGHT_CONTROL'] 
+            },
+            'FLOW': { 
+                x: 250, y: 80, type: 'sensor', 
+                text: 'Flow Meter\n🌊 Water Flow\nL/min monitoring', 
+                children: ['FLOW_CONTROL'] 
+            },
+            'LEVEL': { 
+                x: 250, y: 180, type: 'sensor', 
+                text: 'Tank Level\n📏 Water Level\n20-90% range', 
+                children: ['TANK_MANAGEMENT'] 
+            },
+            'TIMER': { 
+                x: 250, y: 280, type: 'sensor', 
+                text: 'Schedule Timer\n⏰ Irrigation\n2hr cycles 6am-8pm', 
+                children: ['IRRIGATION_SCHEDULE'] 
+            },
+
+            // Decision Engine (Column 2)
+            'NPK_ANALYSIS': { 
+                x: 400, y: 80, type: 'decision', 
+                text: 'NPK Analysis\n🔍 Nutrient Balance\nN/P/K Ratios', 
+                children: ['DOSE_NITROGEN', 'DOSE_PHOSPHORUS', 'DOSE_POTASSIUM', 'NPK_DILUTE'] 
+            },
+            'PH_CONTROL': { 
+                x: 400, y: 180, type: 'decision', 
+                text: 'pH Control Logic\n⚖️ pH Adjustment\nUp/Down Decision', 
+                children: ['PH_UP', 'PH_DOWN', 'PH_STABLE'] 
+            },
+            'TDS_MANAGEMENT': { 
+                x: 400, y: 280, type: 'decision', 
+                text: 'TDS Management\n📊 Conductivity Control\nNutrient Concentration', 
+                children: ['TDS_INCREASE', 'TDS_DECREASE', 'TDS_OPTIMAL'] 
+            },
+            'TEMP_CONTROL': { 
+                x: 400, y: 380, type: 'decision', 
+                text: 'Temperature Control\n🎯 Climate Management\nHeating/Cooling Logic', 
+                children: ['COOLING_SYSTEM', 'HEATING_SYSTEM'] 
+            },
+            'HUMIDITY_CONTROL': { 
+                x: 400, y: 480, type: 'decision', 
+                text: 'Humidity Control\n💨 RH Management\nHumidify/Dehumidify', 
+                children: ['HUMIDIFY', 'DEHUMIDIFY'] 
+            },
+            'VPD_MANAGEMENT': { 
+                x: 400, y: 580, type: 'decision', 
+                text: 'VPD Management\n🌡️💧 Vapor Control\nTranspiration Optimization', 
+                children: ['VPD_ADJUST_TEMP', 'VPD_ADJUST_HUM'] 
+            },
+            'CO2_CONTROL': { 
+                x: 400, y: 680, type: 'decision', 
+                text: 'CO2 Control\n🫁 Gas Management\nPhotosynthesis Support', 
+                children: ['CO2_INJECT', 'CO2_VENTILATE'] 
+            },
+            'LIGHT_CONTROL': { 
+                x: 400, y: 780, type: 'decision', 
+                text: 'Light Control\n💡 DLI Management\nPhotoperiod Control', 
+                children: ['LIGHTS_ON', 'LIGHTS_DIM', 'LIGHTS_OFF'] 
+            },
+            'FLOW_CONTROL': { 
+                x: 400, y: 880, type: 'decision', 
+                text: 'Flow Control\n🚰 Water Management\nPressure & Flow Rate', 
+                children: ['PUMP_BOOST', 'FLOW_REDUCE', 'SOLENOID_VALVE'] 
+            },
+
+            // Action Layer (Column 3)
+            'DOSE_NITROGEN': { 
+                x: 750, y: 40, type: 'action', 
+                text: 'Nitrogen Dosing\n🧪 Pump A\nNitrate Solution', 
+                children: ['NUTRIENT_LOG'] 
+            },
+            'DOSE_PHOSPHORUS': { 
+                x: 750, y: 100, type: 'action', 
+                text: 'Phosphorus Dosing\n🧪 Pump B\nPhosphate Solution', 
+                children: ['NUTRIENT_LOG'] 
+            },
+            'DOSE_POTASSIUM': { 
+                x: 750, y: 160, type: 'action', 
+                text: 'Potassium Dosing\n🧪 Pump C\nPotash Solution', 
+                children: ['NUTRIENT_LOG'] 
+            },
+            'NPK_DILUTE': { 
+                x: 750, y: 220, type: 'action', 
+                text: 'Nutrient Dilution\n💧 Water Addition\nConcentration Reduce', 
+                children: ['NUTRIENT_LOG'] 
+            },
+            'PH_UP': { 
+                x: 750, y: 280, type: 'action', 
+                text: 'pH Increase\n⬆️ Base Addition\nPotassium Hydroxide', 
+                children: ['PH_LOG'] 
+            },
+            'PH_DOWN': { 
+                x: 750, y: 340, type: 'action', 
+                text: 'pH Decrease\n⬇️ Acid Addition\nPhosphoric Acid', 
+                children: ['PH_LOG'] 
+            },
+            'PH_STABLE': { 
+                x: 750, y: 400, type: 'action', 
+                text: 'pH Stable\n✅ No Adjustment\nWithin Range', 
+                children: ['PH_LOG'] 
+            },
+            'TDS_INCREASE': { 
+                x: 750, y: 460, type: 'action', 
+                text: 'TDS Increase\n📈 Nutrient Boost\nConcentrated Solution', 
+                children: ['NUTRIENT_LOG'] 
+            },
+            'TDS_DECREASE': { 
+                x: 750, y: 520, type: 'action', 
+                text: 'TDS Decrease\n📉 Dilution\nFresh Water Add', 
+                children: ['NUTRIENT_LOG'] 
+            },
+            'TDS_OPTIMAL': { 
+                x: 750, y: 580, type: 'action', 
+                text: 'TDS Optimal\n✅ No Adjustment\nWithin Range', 
+                children: ['NUTRIENT_LOG'] 
+            },
+            'IRRIGATION_SCHEDULE': { 
+                x: 750, y: 640, type: 'action', 
+                text: 'Irrigation Control\n⏰ Scheduled Watering\nBooster Pump Control', 
+                children: ['SOLENOID_VALVE', 'IRRIGATION_LOG'] 
+            },
+            'TANK_MANAGEMENT': { 
+                x: 750, y: 700, type: 'action', 
+                text: 'Tank Management\n🏗️ Level Control\nRefill & Monitoring', 
+                children: ['SOLENOID_VALVE', 'TANK_ALERT'] 
+            },
+            'PUMP_BOOST': { 
+                x: 750, y: 760, type: 'action', 
+                text: 'Pump Boost\n🚀 Increase Flow\nPressure Adjustment', 
+                children: ['IRRIGATION_LOG'] 
+            },
+            'FLOW_REDUCE': { 
+                x: 750, y: 820, type: 'action', 
+                text: 'Flow Reduction\n🔧 Decrease Flow\nPressure Adjustment', 
+                children: ['IRRIGATION_LOG'] 
+            },
+            'SOLENOID_VALVE': { 
+                x: 750, y: 880, type: 'action', 
+                text: 'Solenoid Valve\n🚰 Open/Close\nWater/Solution Flow', 
+                children: ['IRRIGATION_LOG', 'TANK_ALERT'] 
+            },
+
+            // Environmental Control (Column 4)
+            'COOLING_SYSTEM': { 
+                x: 1100, y: 100, type: 'environment', 
+                text: 'Cooling System\n❄️ Temperature Reduce\nFans & Ventilation', 
+                children: ['ENV_LOG'] 
+            },
+            'HEATING_SYSTEM': { 
+                x: 1100, y: 180, type: 'environment', 
+                text: 'Heating System\n🔥 Temperature Increase\nHeaters & Warmers', 
+                children: ['ENV_LOG'] 
+            },
+            'HUMIDIFY': { 
+                x: 1100, y: 260, type: 'environment', 
+                text: 'Humidification\n💨 Moisture Add\nMisting System', 
+                children: ['ENV_LOG'] 
+            },
+            'DEHUMIDIFY': { 
+                x: 1100, y: 340, type: 'environment', 
+                text: 'Dehumidification\n🌬️ Moisture Remove\nVentilation Increase', 
+                children: ['ENV_LOG'] 
+            },
+            'CO2_INJECT': { 
+                x: 1100, y: 420, type: 'environment', 
+                text: 'CO2 Injection\n🫁 Gas Addition\nPhotosynthesis Boost', 
+                children: ['ENV_LOG'] 
+            },
+            'CO2_VENTILATE': { 
+                x: 1100, y: 500, type: 'environment', 
+                text: 'CO2 Ventilation\n🌬️ Gas Reduction\nAir Exchange', 
+                children: ['ENV_LOG'] 
+            },
+            'LIGHTS_ON': { 
+                x: 1100, y: 580, type: 'environment', 
+                text: 'Light Activation\n💡 Full Spectrum\nLED Array Control', 
+                children: ['ENV_LOG'] 
+            },
+            'LIGHTS_DIM': { 
+                x: 1100, y: 660, type: 'environment', 
+                text: 'Light Dimming\n🔅 Intensity Control\nPWM Adjustment', 
+                children: ['ENV_LOG'] 
+            },
+            'LIGHTS_OFF': { 
+                x: 1100, y: 740, type: 'environment', 
+                text: 'Lights Off\n🌙 Night Cycle\nPower Saving', 
+                children: ['ENV_LOG'] 
+            },
+            'VPD_ADJUST_TEMP': { 
+                x: 1100, y: 820, type: 'environment', 
+                text: 'VPD Temp Adjust\n🌡️ Temperature Tweak\nFine Climate Control', 
+                children: ['ENV_LOG'] 
+            },
+            'VPD_ADJUST_HUM': { 
+                x: 1100, y: 900, type: 'environment', 
+                text: 'VPD Humidity Adjust\n💧 Moisture Control\nPrecision Misting', 
+                children: ['ENV_LOG'] 
+            },
+
+            // Logging & Alerts (Column 5)
+            'NUTRIENT_LOG': { 
+                x: 1450, y: 150, type: 'alert', 
+                text: 'Nutrient Logging\n📊 Data Recording\nTrend Analysis', 
+                children: ['DASHBOARD'] 
+            },
+            'PH_LOG': { 
+                x: 1450, y: 230, type: 'alert', 
+                text: 'pH Logging\n📈 pH Trends\nHistory Tracking', 
+                children: ['DASHBOARD'] 
+            },
+            'ENV_LOG': { 
+                x: 1450, y: 310, type: 'alert', 
+                text: 'Environmental Log\n🌡️ Climate Data\nPerformance Metrics', 
+                children: ['DASHBOARD'] 
+            },
+            'IRRIGATION_LOG': { 
+                x: 1450, y: 390, type: 'alert', 
+                text: 'Irrigation Log\n💧 Water Usage\nSchedule Tracking', 
+                children: ['DASHBOARD'] 
+            },
+            'TANK_ALERT': { 
+                x: 1450, y: 470, type: 'alert', 
+                text: 'Tank Alerts\n🚨 Level Warnings\nMaintenance Notices', 
+                children: ['MOBILE_APP'] 
+            },
+            'SYSTEM_ALERT': { 
+                x: 1450, y: 550, type: 'alert', 
+                text: 'System Alerts\n⚠️ Fault Detection\nError Notifications', 
+                children: ['MOBILE_APP'] 
+            },
+
+            // Interface Layer (Column 6)
+            'DASHBOARD': { 
+                x: 1650, y: 200, type: 'display', 
+                text: 'Web Dashboard\n💻 Real-time Display\nAnalytics & Control', 
+                children: [] 
+            },
+            'MOBILE_APP': { 
+                x: 1650, y: 320, type: 'display', 
+                text: 'Mobile App\n📱 Remote Control\nPush Notifications', 
+                children: [] 
+            },
+            'LOCAL_DISPLAY': { 
+                x: 1650, y: 440, type: 'display', 
+                text: 'Local Display\n🖥️ 7" Touch Screen\nOn-site Control', 
+                children: [] 
+            }
+        };
+
+        let visibleNodes = new Set();
+        let activeConnections = new Set();
+        let expandedNodes = new Set();
+
+        function initializeFlow() {
+            const container = document.getElementById('flowContainer');
+            visibleNodes.clear();
+            activeConnections.clear();
+            expandedNodes.clear();
+            
+            // Show only primary sensor nodes initially
+            const primarySensors = ['NPK', 'PH', 'TDS', 'TEMP', 'HUM', 'VPD', 'CO2', 'PAR', 'FLOW', 'LEVEL', 'TIMER'];
+            primarySensors.forEach(nodeId => {
+                visibleNodes.add(nodeId);
+            });
+            
+            renderFlow();
+        }
+
+        function renderFlow() {
+            const container = document.getElementById('flowContainer');
+            
+            // Clear existing content except section headers
+            const headers = container.querySelectorAll('.section-header');
+            container.innerHTML = '';
+            headers.forEach(header => container.appendChild(header));
+            
+            // Render visible nodes
+            visibleNodes.forEach(nodeId => {
+                const node = nodes[nodeId];
+                const nodeElement = document.createElement('div');
+                
+                // Safely check for children
+                const hasChildren = Array.isArray(node.children) && node.children.length > 0;
+                const isExpanded = expandedNodes.has(nodeId);
+                
+                nodeElement.className = `node ${node.type} visible`;
+                if (hasChildren) nodeElement.classList.add('has-children');
+                if (isExpanded) nodeElement.classList.add('expanded');
+                
+                nodeElement.id = nodeId;
+                nodeElement.style.left = node.x + 'px';
+                nodeElement.style.top = node.y + 'px';
+                nodeElement.innerHTML = node.text.replace(/\n/g, '<br>');
+                
+                nodeElement.addEventListener('click', () => expandNode(nodeId));
+                
+                container.appendChild(nodeElement);
+            });
+            
+            // Render connections
+            renderConnections();
+        }
+
+        function expandNode(nodeId) {
+            const node = nodes[nodeId];
+            
+            // Toggle expansion
+            if (expandedNodes.has(nodeId)) {
+                return; // Already expanded
+            }
+            
+            expandedNodes.add(nodeId);
+            
+            // Add active styling
+            document.querySelectorAll('.node').forEach(n => n.classList.remove('active'));
+            document.getElementById(nodeId).classList.add('active');
+            
+            // Add children to visible nodes
+            if (Array.isArray(node.children) && node.children.length > 0) {
+                node.children.forEach(childId => {
+                    visibleNodes.add(childId);
+                    activeConnections.add(`${nodeId}-${childId}`);
+                });
+                
+                setTimeout(() => renderFlow(), 150);
+            }
+        }
+
+        function renderConnections() {
+            const container = document.getElementById('flowContainer');
+            
+            activeConnections.forEach(connectionId => {
+                const [fromId, toId] = connectionId.split('-');
+                
+                if (visibleNodes.has(fromId) && visibleNodes.has(toId)) {
+                    const fromNode = nodes[fromId];
+                    const toNode = nodes[toId];
+                    
+                    const fromX = fromNode.x + 160; // Node width
+                    const fromY = fromNode.y + 35;  // Node center
+                    const toX = toNode.x;
+                    const toY = toNode.y + 35;
+                    
+                    // Create connection container
+                    const connection = document.createElement('div');
+                    connection.className = 'connection';
+                    
+                    // Horizontal line
+                    const hLine = document.createElement('div');
+                    hLine.className = 'connection-line visible';
+                    hLine.style.left = fromX + 'px';
+                    hLine.style.top = fromY + 'px';
+                    hLine.style.width = (toX - fromX - 20) + 'px';
+                    hLine.style.height = '3px';
+                    hLine.style.transformOrigin = 'left center';
+                    
+                    // Vertical line (if needed)
+                    if (Math.abs(toY - fromY) > 5) {
+                        const vLine = document.createElement('div');
+                        vLine.className = 'connection-line visible';
+                        vLine.style.left = (toX - 20) + 'px';
+                        vLine.style.top = Math.min(fromY, toY) + 'px';
+                        vLine.style.width = '3px';
+                        vLine.style.height = Math.abs(toY - fromY) + 'px';
+                        vLine.style.transformOrigin = 'center top';
+                        connection.appendChild(vLine);
+                    }
+                    
+                    // Arrow
+                    const arrow = document.createElement('div');
+                    arrow.className = 'arrow';
+                    arrow.style.left = (toX - 10) + 'px';
+                    arrow.style.top = (toY - 3) + 'px';
+                    
+                    connection.appendChild(hLine);
+                    connection.appendChild(arrow);
+                    container.appendChild(connection);
+                }
+            });
+        }
+
+        function resetFlow() {
+            initializeFlow();
+        }
+
+        function expandAll() {
+            // Show all nodes and connections
+            Object.keys(nodes).forEach(nodeId => {
+                visibleNodes.add(nodeId);
+                expandedNodes.add(nodeId);
+                
+                const node = nodes[nodeId];
+                if (Array.isArray(node.children) && node.children.length > 0) {
+                    node.children.forEach(childId => {
+                        activeConnections.add(`${nodeId}-${childId}`);
+                    });
+                }
+            });
+            renderFlow();
+        }
+
+        function showCriticalPath() {
+            // Reset and show critical path including solenoid valve
+            visibleNodes.clear();
+            activeConnections.clear();
+            expandedNodes.clear();
+            
+            const criticalPath = [
+                'NPK', 'NPK_ANALYSIS', 'DOSE_NITROGEN', 'NUTRIENT_LOG', 'DASHBOARD',
+                'PH', 'PH_CONTROL', 'PH_DOWN', 'PH_LOG',
+                'TDS', 'TDS_MANAGEMENT', 'TDS_INCREASE',
+                'TEMP', 'TEMP_CONTROL', 'COOLING_SYSTEM', 'ENV_LOG',
+                'FLOW', 'FLOW_CONTROL', 'SOLENOID_VALVE', 'IRRIGATION_LOG',
+                'TIMER', 'IRRIGATION_SCHEDULE',
+                'LEVEL', 'TANK_MANAGEMENT'
+            ];
+            
+            criticalPath.forEach(nodeId => {
+                visibleNodes.add(nodeId);
+                expandedNodes.add(nodeId);
+            });
+            
+            // Add critical connections
+            const criticalConnections = [
+                'NPK-NPK_ANALYSIS', 'NPK_ANALYSIS-DOSE_NITROGEN', 
+                'DOSE_NITROGEN-NUTRIENT_LOG', 'NUTRIENT_LOG-DASHBOARD',
+                'PH-PH_CONTROL', 'PH_CONTROL-PH_DOWN', 'PH_DOWN-PH_LOG',
+                'TDS-TDS_MANAGEMENT', 'TDS_MANAGEMENT-TDS_INCREASE',
+                'TEMP-TEMP_CONTROL', 'TEMP_CONTROL-COOLING_SYSTEM', 'COOLING_SYSTEM-ENV_LOG',
+                'FLOW-FLOW_CONTROL', 'FLOW_CONTROL-SOLENOID_VALVE', 'SOLENOID_VALVE-IRRIGATION_LOG',
+                'TIMER-IRRIGATION_SCHEDULE', 'IRRIGATION_SCHEDULE-SOLENOID_VALVE',
+                'LEVEL-TANK_MANAGEMENT', 'TANK_MANAGEMENT-SOLENOID_VALVE'
+            ];
+            
+            criticalConnections.forEach(conn => {
+                activeConnections.add(conn);
+            });
+            
+            renderFlow();
+        }
+
+        // Initialize the flow when page loads
+        window.addEventListener('load', initializeFlow);
+    </script>
+</body>
+</html>
