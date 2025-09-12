@@ -38,7 +38,7 @@
         .flow-container {
             position: relative;
             width: 100%;
-            height: 1100px;
+            height: 1000px;
             overflow: auto;
             background: linear-gradient(45deg, #f8f9fa 25%, transparent 25%),
                         linear-gradient(-45deg, #f8f9fa 25%, transparent 25%),
@@ -265,7 +265,7 @@
             }
             
             .flow-container {
-                height: 900px;
+                height: 800px;
             }
             
             .node {
@@ -279,7 +279,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🌱 Hydroponic System Architecture Flow</h1>
+        <h1>Hydroponic System Architecture Flow</h1>
         
         <div class="info-panel">
             <div class="legend">
@@ -433,7 +433,7 @@
             'FLOW_CONTROL': { 
                 x: 400, y: 880, type: 'decision', 
                 text: 'Flow Control\n🚰 Water Management\nPressure & Flow Rate', 
-                children: ['PUMP_BOOST', 'FLOW_REDUCE', 'SOLENOID_VALVE'] 
+                children: ['PUMP_BOOST', 'FLOW_REDUCE'] 
             },
 
             // Action Layer (Column 3)
@@ -490,12 +490,12 @@
             'IRRIGATION_SCHEDULE': { 
                 x: 750, y: 640, type: 'action', 
                 text: 'Irrigation Control\n⏰ Scheduled Watering\nBooster Pump Control', 
-                children: ['SOLENOID_VALVE', 'IRRIGATION_LOG'] 
+                children: ['IRRIGATION_LOG'] 
             },
             'TANK_MANAGEMENT': { 
                 x: 750, y: 700, type: 'action', 
                 text: 'Tank Management\n🏗️ Level Control\nRefill & Monitoring', 
-                children: ['SOLENOID_VALVE', 'TANK_ALERT'] 
+                children: ['TANK_ALERT'] 
             },
             'PUMP_BOOST': { 
                 x: 750, y: 760, type: 'action', 
@@ -506,11 +506,6 @@
                 x: 750, y: 820, type: 'action', 
                 text: 'Flow Reduction\n🔧 Decrease Flow\nPressure Adjustment', 
                 children: ['IRRIGATION_LOG'] 
-            },
-            'SOLENOID_VALVE': { 
-                x: 750, y: 880, type: 'action', 
-                text: 'Solenoid Valve\n🚰 Open/Close\nWater/Solution Flow', 
-                children: ['IRRIGATION_LOG', 'TANK_ALERT'] 
             },
 
             // Environmental Control (Column 4)
@@ -773,7 +768,7 @@
         }
 
         function showCriticalPath() {
-            // Reset and show critical path including solenoid valve
+            // Reset and show critical nutrient path
             visibleNodes.clear();
             activeConnections.clear();
             expandedNodes.clear();
@@ -782,10 +777,7 @@
                 'NPK', 'NPK_ANALYSIS', 'DOSE_NITROGEN', 'NUTRIENT_LOG', 'DASHBOARD',
                 'PH', 'PH_CONTROL', 'PH_DOWN', 'PH_LOG',
                 'TDS', 'TDS_MANAGEMENT', 'TDS_INCREASE',
-                'TEMP', 'TEMP_CONTROL', 'COOLING_SYSTEM', 'ENV_LOG',
-                'FLOW', 'FLOW_CONTROL', 'SOLENOID_VALVE', 'IRRIGATION_LOG',
-                'TIMER', 'IRRIGATION_SCHEDULE',
-                'LEVEL', 'TANK_MANAGEMENT'
+                'TEMP', 'TEMP_CONTROL', 'COOLING_SYSTEM', 'ENV_LOG'
             ];
             
             criticalPath.forEach(nodeId => {
@@ -799,10 +791,7 @@
                 'DOSE_NITROGEN-NUTRIENT_LOG', 'NUTRIENT_LOG-DASHBOARD',
                 'PH-PH_CONTROL', 'PH_CONTROL-PH_DOWN', 'PH_DOWN-PH_LOG',
                 'TDS-TDS_MANAGEMENT', 'TDS_MANAGEMENT-TDS_INCREASE',
-                'TEMP-TEMP_CONTROL', 'TEMP_CONTROL-COOLING_SYSTEM', 'COOLING_SYSTEM-ENV_LOG',
-                'FLOW-FLOW_CONTROL', 'FLOW_CONTROL-SOLENOID_VALVE', 'SOLENOID_VALVE-IRRIGATION_LOG',
-                'TIMER-IRRIGATION_SCHEDULE', 'IRRIGATION_SCHEDULE-SOLENOID_VALVE',
-                'LEVEL-TANK_MANAGEMENT', 'TANK_MANAGEMENT-SOLENOID_VALVE'
+                'TEMP-TEMP_CONTROL', 'TEMP_CONTROL-COOLING_SYSTEM', 'COOLING_SYSTEM-ENV_LOG'
             ];
             
             criticalConnections.forEach(conn => {
